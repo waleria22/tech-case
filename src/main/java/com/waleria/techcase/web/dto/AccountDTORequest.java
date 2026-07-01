@@ -15,4 +15,7 @@ public class AccountDTORequest {
     @JsonProperty("document_number")
    String documentNumber;
 
+    public AccountDTORequest(String documentNumber) {
+        this.documentNumber = documentNumber;
+    }
 }

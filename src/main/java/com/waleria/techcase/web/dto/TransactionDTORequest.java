@@ -24,4 +24,10 @@ public class TransactionDTORequest {
     @NotNull
     @JsonProperty("amount")
     BigDecimal amount;
+
+    public TransactionDTORequest(Long accountId, Long operationTypeId, BigDecimal amount) {
+        this.accountId = accountId;
+        this.operationTypeId = operationTypeId;
+        this.amount = amount;
+    }
 }
