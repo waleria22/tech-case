@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+
+echo "Building Docker image..."
+docker build -t techcase-api .
+
+echo "Starting container..."
+docker run --rm -p 8080:8080 --name techcase-api techcase-api
