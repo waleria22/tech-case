@@ -1,81 +1,90 @@
-# Tech Case - Transactions routine
+# Tech Case - Transactions API
 
-API REST para gerenciamento de contas e transações de cartão, desenvolvida em Java + Spring Boot.
+A REST API for managing cardholder accounts and transactions, built with Java + Spring Boot.
 
-## Tecnologias
+## Tech Stack
 
 - Java 21
 - Spring Boot
 - Spring Data JPA
-- H2 Database (em memória)
+- H2 Database (in-memory)
 - Gradle
+- Lombok
 
-## Arquitetura
+## Architecture
 
-Projeto estruturado em camadas:
-- `repository` — entidades JPA e acesso a dados
-- `service` — contratos (interfaces) das regras de negócio
-- `useCase` — implementação das regras de negócio
-- `web.controller` — endpoints REST
-- `web.dto` — objetos de request/response
-- `web.exception` — exceptions de domínio e tratamento global de erros
+The project follows a layered structure:
+- `repository` — JPA entities and data access
+- `service` — business logic contracts (interfaces)
+- `useCase` — business logic implementation
+- `web.controller` — REST endpoints
+- `web.dto` — request/response objects
+- `web.exception` — domain exceptions and global error handling
 
-### Decisões de design
-- **Normalização de sinal por tipo de operação**: o `OperationType` (enum) centraliza a regra de negócio que define se uma transação é positiva ou negativa, evitando que o client tenha controle sobre isso.
-- **Exceptions de domínio + `@RestControllerAdvice`**: erros de negócio (conta não encontrada, tipo de operação inválido) são tratados de forma centralizada, retornando respostas HTTP padronizadas.
+### Design decisions
+- **Amount sign normalization by operation type**: the `OperationType` enum centralizes the business rule that defines whether a transaction is positive or negative, so the client cannot control this directly — it's enforced by the domain regardless of the sign sent in the request.
+- **Domain exceptions + `@RestControllerAdvice`**: business errors (account not found, invalid operation type) are handled centrally, returning standardized HTTP responses instead of leaking stack traces.
+- **`@ManyToOne` relationship between Transaction and Account**: transactions hold a real reference to their account (not just a raw ID), enforcing referential integrity at the database level via a foreign key constraint. The relationship is `LAZY` on purpose, to avoid loading the full account whenever a transaction is fetched.
+- **Structured logging**: key business events (account not found) are logged for traceability, without exposing sensitive data.
 
-##  Como rodar
+## How to run
 
-### Opção 1 — Docker 
-\`\`\`bash
+### Option 1 — Docker 
+```bash
 ./run
-\`\`\`
+```
 
-### Opção 3 — Local (sem Docker)
-\`\`\`bash
+### Option 2 — Local 
+```bash
 ./gradlew bootRun
-\`\`\`
+```
 
-A aplicação sobe em `http://localhost:8080`.
+The application starts on `http://localhost:8080`.
 
-## Rodando os testes
+## Running the tests
 
-\`\`\`bash
+```bash
 ./gradlew test
-\`\`\`
+```
+
+## API Documentation
+
+Interactive API documentation (Swagger UI) is available once the application is running:
+
+http://localhost:8080/swagger-ui.html
 
 ## Endpoints
 
-### Criar conta
-\`POST /accounts\`
-\`\`\`json
+### Create account
+`POST /accounts`
+```json
 {
-"document_number": "12345678900"
+  "document_number": "12345678900"
 }
-\`\`\`
+```
 
-### Consultar conta
-\`GET /accounts/{accountId}\`
+### Retrieve account
+`GET /accounts/{accountId}`
 
-### Criar transação
-\`POST /transactions\`
-\`\`\`json
+### Create transaction
+`POST /transactions`
+```json
 {
-"account_id": 1,
-"operation_type_id": 4,
-"amount": 123.45
+  "account_id": 1,
+  "operation_type_id": 4,
+  "amount": 123.45
 }
-\`\`\`
+```
 
-## Banco de dados
+## Database
 
-H2 em memória. Console disponível em `http://localhost:8080/h2-console`.
+H2 in-memory database. Console available (if enabled) at `http://localhost:8080/h2-console`.
 
-## Tipos de transação
+## Operation types
 
-| ID | Tipo                  | Sinal    |
+| ID | Type                  | Sign     |
 |----|------------------------|----------|
-| 1  | Normal Purchase        | Negativo |
-| 2  | Installment Purchase   | Negativo |
-| 3  | Withdrawal              | Negativo |
-| 4  | Credit Voucher          | Positivo |
+| 1  | Normal Purchase        | Negative |
+| 2  | Installment Purchase   | Negative |
+| 3  | Withdrawal              | Negative |
+| 4  | Credit Voucher          | Positive |
