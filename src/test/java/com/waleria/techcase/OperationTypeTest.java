@@ -53,6 +53,6 @@ class OperationTypeTest {
     @Test
     void shouldThrowExceptionWhenOperationTypeIdIsNull() {
         assertThatThrownBy(() -> OperationType.fromId(null))
-                .isInstanceOf(NullPointerException.class);
+                .isInstanceOf(OperationTypeNotFoundException.class);
     }
 }
