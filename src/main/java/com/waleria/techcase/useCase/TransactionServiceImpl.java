@@ -1,6 +1,7 @@
 package com.waleria.techcase.useCase;
 
 
+import com.waleria.techcase.repository.AccountEntity;
 import com.waleria.techcase.repository.AccountRepository;
 import com.waleria.techcase.repository.TransactionEntity;
 import com.waleria.techcase.repository.TransactionRepository;
@@ -9,12 +10,14 @@ import com.waleria.techcase.web.dto.TransactionDTORequest;
 import com.waleria.techcase.web.dto.TransactionDTOResponse;
 import com.waleria.techcase.web.exception.AccountNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class TransactionServiceImpl implements TransactionService {
@@ -26,14 +29,16 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public TransactionDTOResponse createTransaction(TransactionDTORequest request) {
 
-        if (!accountRepository.existsById(request.getAccountId())) {
-            throw new AccountNotFoundException(request.getAccountId());
-        }
+        AccountEntity account = accountRepository.findById(request.getAccountId())
+                .orElseThrow(() -> {
+                    log.warn("Attempt to create transaction for non-existent accountId={}", request.getAccountId());
+                    return new AccountNotFoundException(request.getAccountId());
+                });
         OperationType operationType = OperationType.fromId(request.getOperationTypeId());
         BigDecimal normalizedAmount = operationType.normalize(request.getAmount());
 
         TransactionEntity transactionEntity = new TransactionEntity();
-        transactionEntity.setAccountId(request.getAccountId());
+        transactionEntity.setAccount(account);
         transactionEntity.setOperationTypeId(request.getOperationTypeId());
         transactionEntity.setAmount(normalizedAmount);
         transactionEntity.setEventDate(LocalDateTime.now());
@@ -42,7 +47,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         return new TransactionDTOResponse(
                 transactionSave.getId(),
-                transactionSave.getAccountId(),
+                transactionSave.getAccount().getAccountId(),
                 transactionSave.getOperationTypeId(),
                 transactionSave.getAmount()
         );

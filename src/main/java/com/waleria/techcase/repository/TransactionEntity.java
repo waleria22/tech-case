@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "transaction")
+@Table(name = "transactions")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,8 +19,9 @@ public class TransactionEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Long accountId;
+    @ManyToOne
+    @JoinColumn(name = "accountId", nullable = false)
+    private AccountEntity account;
 
     @Column(nullable = false)
     private Long operationTypeId;

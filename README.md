@@ -1,8 +1,8 @@
-# Tech Case - Transactions API
+# Tech Case - Transactions routine
 
 API REST para gerenciamento de contas e transações de cartão, desenvolvida em Java + Spring Boot.
 
-## 🛠 Tecnologias
+## Tecnologias
 
 - Java 21
 - Spring Boot
@@ -10,7 +10,7 @@ API REST para gerenciamento de contas e transações de cartão, desenvolvida em
 - H2 Database (em memória)
 - Gradle
 
-## 🏗 Arquitetura
+## Arquitetura
 
 Projeto estruturado em camadas:
 - `repository` — entidades JPA e acesso a dados
