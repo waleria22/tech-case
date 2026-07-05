@@ -20,15 +20,18 @@ public class TransactionEntity {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "accountId", nullable = false)
+    @JoinColumn(name = "account_id", nullable = false)
     private AccountEntity account;
 
-    @Column(nullable = false)
+    @Column(name = "operation_type_id",nullable = false)
     private Long operationTypeId;
 
     @Column(nullable = false)
     private BigDecimal amount;
 
     @Column(nullable = false)
+    private BigDecimal balance;
+
+    @Column(name = "event_date",nullable = false)
     private LocalDateTime eventDate;
 }

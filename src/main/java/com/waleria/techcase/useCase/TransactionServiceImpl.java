@@ -5,17 +5,20 @@ import com.waleria.techcase.repository.AccountEntity;
 import com.waleria.techcase.repository.AccountRepository;
 import com.waleria.techcase.repository.TransactionEntity;
 import com.waleria.techcase.repository.TransactionRepository;
+import com.waleria.techcase.service.DischargeService;
 import com.waleria.techcase.service.TransactionService;
 import com.waleria.techcase.web.dto.TransactionDTORequest;
 import com.waleria.techcase.web.dto.TransactionDTOResponse;
 import com.waleria.techcase.web.exception.AccountNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
 
 @Slf4j
 @RequiredArgsConstructor
@@ -24,32 +27,59 @@ public class TransactionServiceImpl implements TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
+    private final DischargeService dischargeService;
 
     @Transactional
     @Override
-    public TransactionDTOResponse createTransaction(TransactionDTORequest request) {
+    public TransactionDTOResponse
+    createTransaction(TransactionDTORequest request) {
 
-        AccountEntity account = accountRepository.findById(request.getAccountId())
+        AccountEntity account = getAccount(request);
+        OperationType operationType = OperationType.fromId(request.getOperationTypeId());
+        BigDecimal normalizedAmount = operationType.normalize(request.getAmount());
+        BigDecimal balance = resolveBalance(operationType, account.getAccountId(), normalizedAmount);
+
+        TransactionEntity transactionEntity = buildTransaction(account, request, normalizedAmount, balance);
+
+        TransactionEntity transactionSaved = transactionRepository.save(transactionEntity);
+
+        return toResponse(transactionSaved);
+    }
+
+    private @NonNull AccountEntity getAccount(TransactionDTORequest request) {
+        return accountRepository.findById(request.getAccountId())
                 .orElseThrow(() -> {
                     log.warn("Attempt to create transaction for non-existent accountId={}", request.getAccountId());
                     return new AccountNotFoundException(request.getAccountId());
                 });
-        OperationType operationType = OperationType.fromId(request.getOperationTypeId());
-        BigDecimal normalizedAmount = operationType.normalize(request.getAmount());
+    }
 
-        TransactionEntity transactionEntity = new TransactionEntity();
-        transactionEntity.setAccount(account);
-        transactionEntity.setOperationTypeId(request.getOperationTypeId());
-        transactionEntity.setAmount(normalizedAmount);
-        transactionEntity.setEventDate(LocalDateTime.now());
+    private BigDecimal resolveBalance(OperationType operationType, Long accountId, BigDecimal normalizedAmount) {
+        if (operationType.isDebit()) {
+            return normalizedAmount;
+        }
+        return dischargeService.applyCreditToTransactionsDebit(accountId,normalizedAmount);
+    }
 
-         TransactionEntity transactionSave = transactionRepository.save(transactionEntity);
+    private TransactionEntity buildTransaction(AccountEntity account, TransactionDTORequest request,
+                                               BigDecimal normalizedAmount, BigDecimal balance) {
+        TransactionEntity transaction = new TransactionEntity();
+        transaction.setAccount(account);
+        transaction.setOperationTypeId(request.getOperationTypeId());
+        transaction.setAmount(normalizedAmount);
+        transaction.setEventDate(LocalDateTime.now());
+        transaction.setBalance(balance);
+        return transaction;
+    }
 
+    private TransactionDTOResponse toResponse(TransactionEntity transaction) {
         return new TransactionDTOResponse(
-                transactionSave.getId(),
-                transactionSave.getAccount().getAccountId(),
-                transactionSave.getOperationTypeId(),
-                transactionSave.getAmount()
+                transaction.getId(),
+                transaction.getAccount().getAccountId(),
+                transaction.getOperationTypeId(),
+                transaction.getAmount()
         );
     }
+
+
 }

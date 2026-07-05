@@ -1,9 +1,11 @@
 package com.waleria.techcase.useCase;
 
 import com.waleria.techcase.web.exception.OperationTypeNotFoundException;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 
+@Getter
 public enum OperationType {
 
     NORMAL_PURCHASE(1L) {
@@ -32,16 +34,16 @@ public enum OperationType {
         public BigDecimal normalize(BigDecimal amount) {
             return amount.abs();
         }
+        @Override
+        public boolean isDebit() {
+            return false;
+        }
     };
 
     private final Long id;
 
     OperationType(Long id) {
         this.id = id;
-    }
-
-    public Long getId() {
-        return id;
     }
 
     public static OperationType fromId(Long id) {
@@ -55,4 +57,8 @@ public enum OperationType {
     }
 
     public abstract BigDecimal normalize(BigDecimal amount);
+
+    public boolean isDebit() {
+        return true;
+    }
 }
