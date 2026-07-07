@@ -1,5 +1,7 @@
 package com.waleria.techcase.integration;
 
+import com.waleria.techcase.repository.AccountRepository;
+import com.waleria.techcase.repository.TransactionRepository;
 import com.waleria.techcase.useCase.OperationType;
 import com.waleria.techcase.web.dto.AccountDTORequest;
 import com.waleria.techcase.web.dto.AccountDTOResponse;
@@ -8,41 +10,37 @@ import com.waleria.techcase.web.dto.TransactionDTOResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Testcontainers
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class TransactionIntegrationTest {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+class TransactionIntegrationTest extends BaseIntegrationTest {
 
-    @Autowired
-    private TestRestTemplate restTemplate;
 
     private Long accountId;
 
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Autowired
+    private AccountRepository accountRepository;
+
     @BeforeEach
     void setUp() {
+        transactionRepository.deleteAll();
+        accountRepository.deleteAll();
         AccountDTORequest accountRequest = new AccountDTORequest("12345678900");
         ResponseEntity<AccountDTOResponse> response =
                 restTemplate.postForEntity("/accounts", accountRequest, AccountDTOResponse.class);
         accountId = response.getBody().getAccountId();
     }
+
 
     private TransactionDTOResponse createTransaction(Long operationTypeId, BigDecimal amount) {
         TransactionDTORequest request = new TransactionDTORequest(accountId, operationTypeId, amount);
@@ -58,10 +56,26 @@ class TransactionIntegrationTest {
                 "/transactions?account_id=" + accountId,
                 org.springframework.http.HttpMethod.GET,
                 null,
-                new ParameterizedTypeReference<>() {});
+                new ParameterizedTypeReference<>() {
+                });
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         return response.getBody();
+    }
+
+
+    @Test
+    void shouldReturnBadRequestWhenAmountIsNull() {
+        TransactionDTORequest request =
+                new TransactionDTORequest(accountId, 4L, null);
+
+        ResponseEntity<String> response =
+                restTemplate.postForEntity(
+                        "/transactions",
+                        request,
+                        String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
 
@@ -73,7 +87,7 @@ class TransactionIntegrationTest {
 
     @Test
     void shouldReturn404WhenCreatingTransactionForNonExistentAccount() {
-        TransactionDTORequest txRequest = new TransactionDTORequest(999999L,  OperationType.CREDIT_VOUCHER.getId(), new BigDecimal("50.00"));
+        TransactionDTORequest txRequest = new TransactionDTORequest(999999L, OperationType.CREDIT_VOUCHER.getId(), new BigDecimal("50.00"));
 
         ResponseEntity<String> response =
                 restTemplate.postForEntity("/transactions", txRequest, String.class);
@@ -83,7 +97,7 @@ class TransactionIntegrationTest {
 
     @Test
     void shouldReturn404WhenCreatingTransactionForNonExistentOperationType() {
-        TransactionDTORequest txRequest = new TransactionDTORequest(accountId,  10L, new BigDecimal("50.00"));
+        TransactionDTORequest txRequest = new TransactionDTORequest(accountId, 10L, new BigDecimal("50.00"));
 
         ResponseEntity<String> response =
                 restTemplate.postForEntity("/transactions", txRequest, String.class);

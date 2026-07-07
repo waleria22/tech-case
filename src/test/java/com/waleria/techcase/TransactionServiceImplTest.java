@@ -59,7 +59,7 @@ class TransactionServiceImplTest {
         TransactionEntity saved = new TransactionEntity();
         saved.setId(1L);
         saved.setAccount(accountEntity);
-        saved.setOperationTypeId(4L);
+        saved.setOperationTypeId(OperationType.CREDIT_VOUCHER.getId());
         saved.setAmount(creditAmount);
 
         when(accountRepository.findById(1L)).thenReturn(Optional.of(accountEntity));
@@ -69,7 +69,7 @@ class TransactionServiceImplTest {
         TransactionDTOResponse response = transactionService.createTransaction(request);
 
         assertThat(response.getAmount()).isEqualByComparingTo("60.00");
-        assertThat(response.getOperationTypeId()).isEqualTo(4L);
+        assertThat(response.getOperationTypeId()).isEqualTo(OperationType.CREDIT_VOUCHER.getId());
     }
 
     @Test
