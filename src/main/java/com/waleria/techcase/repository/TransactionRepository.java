@@ -9,4 +9,7 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity,L
     List<TransactionEntity> findByAccountAccountIdAndBalanceLessThanOrderByEventDateAsc(
             Long accountId,
             BigDecimal amount);
+
+    List<TransactionEntity> findByAccountAccountIdOrderByEventDateAsc(Long accountId);
+
 }

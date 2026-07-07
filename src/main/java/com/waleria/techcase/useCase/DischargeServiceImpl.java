@@ -19,7 +19,7 @@ public class DischargeServiceImpl implements DischargeService {
     private final TransactionRepository transactionRepository;
 
     @Override
-    public BigDecimal applyCreditToTransactionsDebit(Long accountId, BigDecimal creditAmount) {
+    public BigDecimal applyCreditToDebits(Long accountId, BigDecimal creditAmount) {
         List<TransactionEntity> debitTransactions =
                 getDebitTransactions(accountId);
 

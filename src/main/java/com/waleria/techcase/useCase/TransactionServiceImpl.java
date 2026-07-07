@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 
 @Slf4j
@@ -34,7 +35,7 @@ public class TransactionServiceImpl implements TransactionService {
     public TransactionDTOResponse
     createTransaction(TransactionDTORequest request) {
 
-        AccountEntity account = getAccount(request);
+        AccountEntity account = getAccount(request.getAccountId());
         OperationType operationType = OperationType.fromId(request.getOperationTypeId());
         BigDecimal normalizedAmount = operationType.normalize(request.getAmount());
         BigDecimal balance = resolveBalance(operationType, account.getAccountId(), normalizedAmount);
@@ -46,11 +47,21 @@ public class TransactionServiceImpl implements TransactionService {
         return toResponse(transactionSaved);
     }
 
-    private @NonNull AccountEntity getAccount(TransactionDTORequest request) {
-        return accountRepository.findById(request.getAccountId())
+    @Override
+    public List<TransactionDTOResponse> listTransactionsByAccount(Long accountId) {
+       getAccount(accountId);
+
+        return transactionRepository.findByAccountAccountIdOrderByEventDateAsc(accountId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    private @NonNull AccountEntity getAccount(Long accountId) {
+        return accountRepository.findById(accountId)
                 .orElseThrow(() -> {
-                    log.warn("Attempt to create transaction for non-existent accountId={}", request.getAccountId());
-                    return new AccountNotFoundException(request.getAccountId());
+                    log.warn("Attempt to create transaction for non-existent accountId={}", accountId);
+                    return new AccountNotFoundException(accountId);
                 });
     }
 
@@ -58,7 +69,7 @@ public class TransactionServiceImpl implements TransactionService {
         if (operationType.isDebit()) {
             return normalizedAmount;
         }
-        return dischargeService.applyCreditToTransactionsDebit(accountId,normalizedAmount);
+        return dischargeService.applyCreditToDebits(accountId,normalizedAmount);
     }
 
     private TransactionEntity buildTransaction(AccountEntity account, TransactionDTORequest request,
@@ -77,7 +88,8 @@ public class TransactionServiceImpl implements TransactionService {
                 transaction.getId(),
                 transaction.getAccount().getAccountId(),
                 transaction.getOperationTypeId(),
-                transaction.getAmount()
+                transaction.getAmount(),
+                transaction.getBalance()
         );
     }
 

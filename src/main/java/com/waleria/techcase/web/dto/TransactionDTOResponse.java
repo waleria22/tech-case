@@ -14,11 +14,14 @@ public class TransactionDTOResponse {
     Long accountId;
     Long operationTypeId;
     BigDecimal amount;
+    BigDecimal balance;
 
-    public TransactionDTOResponse(Long id, Long accountId, Long operationTypeId, BigDecimal amount) {
+    public TransactionDTOResponse(Long id, Long accountId, Long operationTypeId, BigDecimal amount, BigDecimal balance) {
         this.transactionId = id;
                 this.accountId = accountId;
                 this.operationTypeId = operationTypeId;
                 this.amount = amount;
+                this.balance = balance;
     }
+
 }

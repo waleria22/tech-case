@@ -9,10 +9,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(name = "Transactions", description = "Operations related to card transactions")
 @RestController
@@ -37,4 +36,15 @@ public class TransactionController {
 
     }
 
+    @Operation(summary = "Lists transactions by account", description = "Returns all transactions for a given account, ordered by event date")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "List of transactions returned successfully"),
+            @ApiResponse(responseCode = "404", description = "Account not found")
+    })
+    @GetMapping
+    public ResponseEntity<List<TransactionDTOResponse>> listTransactionsByAccount(
+            @RequestParam("account_id") Long accountId) {
+        List<TransactionDTOResponse> response = transactionService.listTransactionsByAccount(accountId);
+        return ResponseEntity.ok(response);
+    }
 }

@@ -4,6 +4,8 @@ import com.waleria.techcase.repository.AccountEntity;
 import com.waleria.techcase.repository.AccountRepository;
 import com.waleria.techcase.repository.TransactionEntity;
 import com.waleria.techcase.repository.TransactionRepository;
+import com.waleria.techcase.useCase.DischargeServiceImpl;
+import com.waleria.techcase.useCase.OperationType;
 import com.waleria.techcase.useCase.TransactionServiceImpl;
 import com.waleria.techcase.web.dto.TransactionDTORequest;
 import com.waleria.techcase.web.dto.TransactionDTOResponse;
@@ -37,6 +39,9 @@ class TransactionServiceImplTest {
     @InjectMocks
     private TransactionServiceImpl transactionService;
 
+    @Mock
+    private DischargeServiceImpl dischargeService;
+
     private AccountEntity accountEntity;
 
     @BeforeEach
@@ -48,16 +53,18 @@ class TransactionServiceImplTest {
 
     @Test
     void shouldCreateCreditTransactionWithPositiveAmount() {
-        TransactionDTORequest request = new TransactionDTORequest(1L, 4L, new BigDecimal("60.00"));
+        TransactionDTORequest request = new TransactionDTORequest(1L, OperationType.CREDIT_VOUCHER.getId(), new BigDecimal("60.00"));
+        BigDecimal creditAmount = new BigDecimal("60.00");
 
         TransactionEntity saved = new TransactionEntity();
         saved.setId(1L);
         saved.setAccount(accountEntity);
         saved.setOperationTypeId(4L);
-        saved.setAmount(new BigDecimal("60.00"));
+        saved.setAmount(creditAmount);
 
         when(accountRepository.findById(1L)).thenReturn(Optional.of(accountEntity));
         when(transactionRepository.save(any(TransactionEntity.class))).thenReturn(saved);
+        when(dischargeService.applyCreditToDebits(accountEntity.getAccountId(), creditAmount)).thenReturn(creditAmount);
 
         TransactionDTOResponse response = transactionService.createTransaction(request);
 
@@ -67,7 +74,7 @@ class TransactionServiceImplTest {
 
     @Test
     void shouldNormalizeAmountToNegativeWhenNormalPurchase() {
-        TransactionDTORequest request = new TransactionDTORequest(1L, 1L, new BigDecimal("50.00"));
+        TransactionDTORequest request = new TransactionDTORequest(1L, OperationType.NORMAL_PURCHASE.getId(), new BigDecimal("50.00"));
 
         ArgumentCaptor<TransactionEntity> captor = ArgumentCaptor.forClass(TransactionEntity.class);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(accountEntity));
@@ -81,7 +88,7 @@ class TransactionServiceImplTest {
 
     @Test
     void shouldNormalizeAmountToNegativeEvenWhenAmountIsPositiveForWithdrawal() {
-        TransactionDTORequest request = new TransactionDTORequest(1L, 3L, new BigDecimal("100.00"));
+        TransactionDTORequest request = new TransactionDTORequest(1L, OperationType.WITHDRAWAL.getId(), new BigDecimal("100.00"));
 
         ArgumentCaptor<TransactionEntity> captor = ArgumentCaptor.forClass(TransactionEntity.class);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(accountEntity));
@@ -107,7 +114,7 @@ class TransactionServiceImplTest {
 
     @Test
     void shouldSetEventDateAutomatically() {
-        TransactionDTORequest request = new TransactionDTORequest(1L, 4L, new BigDecimal("20.00"));
+        TransactionDTORequest request = new TransactionDTORequest(1L, OperationType.NORMAL_PURCHASE.getId(), new BigDecimal("20.00"));
 
         ArgumentCaptor<TransactionEntity> captor = ArgumentCaptor.forClass(TransactionEntity.class);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(accountEntity));
@@ -121,7 +128,7 @@ class TransactionServiceImplTest {
 
     @Test
     void shouldThrowAccountNotFoundExceptionWhenAccountDoesNotExist() {
-        TransactionDTORequest request = new TransactionDTORequest(999999L, 4L, new BigDecimal("50.00"));
+        TransactionDTORequest request = new TransactionDTORequest(999999L, OperationType.CREDIT_VOUCHER.getId(), new BigDecimal("50.00"));
 
         when(accountRepository.findById(999999L)).thenReturn(Optional.empty());
 
@@ -133,10 +140,12 @@ class TransactionServiceImplTest {
 
     @Test
     void shouldLinkTransactionToCorrectAccount() {
-        TransactionDTORequest request = new TransactionDTORequest(1L, 4L, new BigDecimal("30.00"));
+        BigDecimal creditAmount = new BigDecimal("30.00");
+        TransactionDTORequest request = new TransactionDTORequest(1L, OperationType.CREDIT_VOUCHER.getId(), creditAmount);
 
         ArgumentCaptor<TransactionEntity> captor = ArgumentCaptor.forClass(TransactionEntity.class);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(accountEntity));
+        when(dischargeService.applyCreditToDebits(accountEntity.getAccountId(), creditAmount)).thenReturn(creditAmount);
         when(transactionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         transactionService.createTransaction(request);
